@@ -1,0 +1,13 @@
+---
+description: Supabase data-access patterns and tenancy-safe queries
+globs: lib/supabase/**/*.ts
+alwaysApply: false
+---
+
+# Supabase Data Access Guidance
+
+- Centralize Supabase client creation and avoid ad-hoc instantiation in page components.
+- Encode tenant scoping in every project/deliverable query path.
+- Prefer narrow, explicit selects over broad wildcard fetches.
+- Keep write paths idempotent where practical to reduce duplicate handoff events.
+- Map database errors to clean domain errors that UI and API layers can handle predictably.

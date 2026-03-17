@@ -1,0 +1,15 @@
+---
+description: TypeScript, naming, and maintainability conventions
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript and Quality Standards
+
+- Use strict TypeScript patterns; avoid `any` unless unavoidable and documented.
+- Prefer small, composable functions with clear inputs/outputs over large handlers.
+- Use `PascalCase` for React components and `camelCase` for variables/functions.
+- Reuse existing utilities and aliases (`@/components`, `@/lib`, `@/hooks`) before adding new abstractions.
+- Handle loading, empty, and error states explicitly.
+- Use app-native UI feedback for errors; do not use browser `alert()` dialogs.
+- Before finishing changes, run project checks that matter for touched files (`lint`, `typecheck`).

@@ -1,0 +1,17 @@
+---
+description: Next.js App Router architecture and data-flow guidance
+globs: app/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Next.js App Router Architecture
+
+- Default to Server Components; add `"use client"` only for interactivity, browser APIs, or local UI state.
+- Keep data fetching and secure logic on the server boundary whenever possible.
+- Use Server Actions or route handlers for writes and privileged operations.
+- Keep page-level files thin: compose from focused feature components and shared UI blocks.
+- Preserve a clear user flow:
+  - unauthenticated -> landing/auth
+  - new user -> onboarding
+  - returning user -> dashboard
+- For async UX, provide loading states and resilient error boundaries for critical paths.

@@ -1,0 +1,13 @@
+---
+description: Security utility rules for encryption, tokens, and secret handling
+globs: lib/security/**/*.ts
+alwaysApply: false
+---
+
+# Security Utilities Guidance
+
+- Keep encryption/decryption primitives server-only and isolated from UI imports.
+- Use authenticated encryption patterns and random IVs/nonces per secret payload.
+- Include key versioning hooks to support future rotation without data loss.
+- Normalize token creation and verification with explicit expiry and scope checks.
+- Ensure helper functions fail closed: invalid input should deny access by default.

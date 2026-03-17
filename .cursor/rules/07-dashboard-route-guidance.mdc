@@ -1,0 +1,13 @@
+---
+description: Dashboard route rules for project status and close readiness
+globs: app/(dashboard)/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Dashboard Route Guidance
+
+- Prioritize "percentage to close" visibility across project lists and detail pages.
+- Keep checklist actions fast: edit, add, delete, and mark ready-for-client with clear feedback.
+- Ensure verified vs pending deliverables are easy to scan with consistent status semantics.
+- Preserve a strong publish gate so client-facing handoff only occurs after agency review.
+- Keep dashboard pages compositional and avoid embedding complex domain logic directly in view files.

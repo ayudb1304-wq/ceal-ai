@@ -1,0 +1,13 @@
+---
+description: API route contract, validation, and response conventions
+globs: app/api/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# API Route Contracts
+
+- Validate request shape at route boundaries before business logic executes.
+- Return stable, explicit JSON response shapes for success and failure paths.
+- Never leak credentials, tokens, stack traces, or provider internals in API responses.
+- Enforce agency/project ownership checks before returning project or deliverable data.
+- Keep API handlers thin; delegate domain logic to `lib/*` modules.

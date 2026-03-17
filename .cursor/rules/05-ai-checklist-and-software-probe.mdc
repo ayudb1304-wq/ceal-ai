@@ -1,0 +1,14 @@
+---
+description: AI checklist extraction and software-probe workflow behavior
+globs: app/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# AI Checklist and Verification Workflow
+
+- Convert uploaded SOW/brief documents into structured deliverable checklists with deterministic JSON output.
+- Keep prompts and parsers focused on extractable deliverables and required technical credentials.
+- Require human approval ("Ready for Client") before publishing AI-generated checklist changes.
+- Track deliverable lifecycle as explicit states (pending, verified, client-confirmed).
+- Verification logic should compare required format against uploaded asset evidence before marking verified.
+- Preserve an auditable history of key handoff events (uploaded, verified, published, downloaded, signed off).

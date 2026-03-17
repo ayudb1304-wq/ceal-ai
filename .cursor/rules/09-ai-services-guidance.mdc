@@ -1,0 +1,13 @@
+---
+description: AI extraction service design and output reliability rules
+globs: lib/ai/**/*.ts
+alwaysApply: false
+---
+
+# AI Services Guidance
+
+- Keep prompt builders deterministic and domain-specific to handoff deliverables.
+- Require structured outputs (JSON schema-like shape) and reject malformed model responses.
+- Separate prompt construction, model call, parsing, and normalization into testable units.
+- Treat model output as untrusted input; sanitize and validate before persistence.
+- Include enough metadata to support HITL review and later audit reconstruction.

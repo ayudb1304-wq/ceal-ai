@@ -1,0 +1,14 @@
+---
+description: Security and delivery-integrity requirements for Ceal AI
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Security and Handoff Integrity
+
+- Treat credentials and tokens as sensitive by default; never log secrets or expose them to client bundles.
+- Encrypt stored credentials using strong encryption patterns (AES-256 + IV) on the server.
+- Enforce row-level data isolation assumptions in data access code (agency-scoped access only).
+- Client portal access must be tokenized and time-bound (UUID-style identifiers with expiration checks).
+- Any file verification feature must validate both required format and relevant metadata when available.
+- Security regressions are blockers: prefer explicit validation and fail-safe defaults.

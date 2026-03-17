@@ -1,0 +1,13 @@
+---
+description: Supabase SQL and RLS policy expectations
+globs: supabase/**/*.sql
+alwaysApply: false
+---
+
+# Supabase SQL and RLS Rules
+
+- Every table that stores agency-linked data must include RLS policy coverage.
+- Policies must enforce agency-level isolation for read and write operations.
+- Prefer explicit policy names and migration-safe SQL with reversible intent.
+- Keep schema changes aligned with lifecycle states used in product flows.
+- Add indexes for high-frequency lookups in checklist, deliverable, and audit queries.

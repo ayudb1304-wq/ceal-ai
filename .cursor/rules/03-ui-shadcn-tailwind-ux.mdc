@@ -1,0 +1,15 @@
+---
+description: UI implementation rules for shadcn, Tailwind, and handoff UX
+globs: **/*.{tsx,css}
+alwaysApply: false
+---
+
+# UI, Components, and UX Rules
+
+- Prefer existing shadcn/ui components before creating custom primitives.
+- Keep styling in Tailwind utility classes and project tokens/CSS variables.
+- Build for mobile and desktop verification flows; avoid desktop-only interactions.
+- Use consistent states for async actions: idle, loading, success, error.
+- For AI extraction and upload operations, include skeleton/loading feedback.
+- For errors, use in-app modals/toasts/surfaces; never use browser alerts.
+- Favor clarity over decoration in handoff views: progress-to-close, verification badges, and audit visibility must stay prominent.

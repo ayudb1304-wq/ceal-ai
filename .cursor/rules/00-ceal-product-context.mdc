@@ -1,0 +1,17 @@
+---
+description: Ceal AI product north-star and feature priorities
+alwaysApply: true
+---
+
+# Ceal AI Product Context
+
+- Build for boutique creative agencies closing $5k-$20k projects.
+- Optimize the final handoff experience to reduce "zombie project" delays.
+- Protect the two key moments:
+  1) "Aha moment" from SOW upload to AI-generated checklist.
+  2) "Certified closing" client sign-off with confidence.
+- Keep AI human-supervised: AI proposes deliverables, agency approves before client-facing changes.
+- Every major feature should reinforce one of these:
+  - Faster time-to-close
+  - Fewer missing-asset disputes
+  - Better professional trust at handoff

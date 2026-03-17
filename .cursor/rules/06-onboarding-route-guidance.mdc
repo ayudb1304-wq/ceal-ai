@@ -1,0 +1,13 @@
+---
+description: Onboarding flow rules for setup-to-first-project experience
+globs: app/(onboarding)/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Onboarding Route Guidance
+
+- Keep onboarding as a short, linear wizard with clear progress at each step.
+- Preserve the 4-step setup intent: profile, branding, legal/tax, first project.
+- Make SOW upload the emotional peak of onboarding and transition cleanly into AI extraction.
+- Do not auto-publish AI output from onboarding; require explicit user confirmation.
+- Use resilient optimistic UI only where rollback is safe; otherwise show deterministic server state.
