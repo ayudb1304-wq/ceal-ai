@@ -135,6 +135,16 @@ export async function getProjectsForClient(clientId: string): Promise<ProjectRow
   }))
 }
 
+export async function getProjectStatus(projectId: string): Promise<string | null> {
+  const supabase = createSupabaseAdminClient()
+  const { data } = await supabase
+    .from("projects")
+    .select("status")
+    .eq("id", projectId)
+    .maybeSingle()
+  return data?.status ?? null
+}
+
 export async function approveChecklist(projectId: string): Promise<void> {
   const supabase = createSupabaseAdminClient()
 

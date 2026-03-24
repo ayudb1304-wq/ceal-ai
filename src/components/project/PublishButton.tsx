@@ -27,14 +27,19 @@ export function PublishButton({ projectId, status }: Props) {
   const [copied, setCopied] = React.useState(false)
   const [resending, setResending] = React.useState(false)
   const [resendStatus, setResendStatus] = React.useState<"idle" | "sent" | "error">("idle")
+  const [pendingCount, setPendingCount] = React.useState<number | null>(null)
 
   const disabled = status !== "active"
 
-  async function handlePublish() {
+  async function doPublish(force: boolean) {
     setLoading(true)
     setError(null)
-    const result = await publishProjectAction(projectId)
+    const result = await publishProjectAction(projectId, force)
     setLoading(false)
+    if (result.pendingWarning !== undefined) {
+      setPendingCount(result.pendingWarning)
+      return
+    }
     if (!result.success) {
       setError(result.error ?? "Failed to publish")
       return
@@ -42,6 +47,15 @@ export function PublishButton({ projectId, status }: Props) {
     setPortalUrl(result.portalUrl ?? null)
     setClientEmail(result.clientEmail ?? null)
     setResendStatus("idle")
+  }
+
+  async function handlePublish() {
+    await doPublish(false)
+  }
+
+  async function handleConfirmPublish() {
+    setPendingCount(null)
+    await doPublish(true)
   }
 
   async function handleCopy() {
@@ -83,6 +97,28 @@ export function PublishButton({ projectId, status }: Props) {
         <Send />
         {loading ? "Publishing…" : "Publish to Client"}
       </Button>
+
+      {/* Pending deliverables warning */}
+      <Dialog open={pendingCount !== null} onOpenChange={(o) => { if (!o) setPendingCount(null) }}>
+        <DialogContent className="max-w-sm rounded-[1.5rem]">
+          <DialogHeader>
+            <DialogTitle>Unverified deliverables</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{pendingCount}</span>{" "}
+            deliverable{pendingCount !== 1 ? "s are" : " is"} still pending. The client will see
+            them as unverified in their portal. Publish anyway?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingCount(null)} disabled={loading}>
+              Go back
+            </Button>
+            <Button onClick={handleConfirmPublish} disabled={loading}>
+              {loading ? "Publishing…" : "Publish anyway"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Publish error modal */}
       {error && !portalUrl && (

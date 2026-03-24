@@ -8,14 +8,11 @@ import { Badge } from "@/components/ui/badge"
 import { getProjectDetail, getAgencyIdByEmail } from "@/lib/supabase/projects"
 import { getDeliverablesForProject } from "@/lib/supabase/deliverables"
 import { getCredentials } from "@/lib/supabase/credentials"
-import { getAuditLogsForProject } from "@/lib/supabase/audit-logs"
 import { cn } from "@/lib/utils"
 import { HitlBanner } from "@/src/components/project/HitlBanner"
 import { DeliverableChecklist } from "@/src/components/project/DeliverableChecklist"
 import { CredentialVault } from "@/src/components/project/CredentialVault"
 import { PublishButton } from "@/src/components/project/PublishButton"
-import { SowReupload } from "@/src/components/project/SowReupload"
-import { AuditLogTimeline } from "@/src/components/project/AuditLogTimeline"
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
@@ -37,10 +34,9 @@ export default async function ProjectDetailPage({ params }: { params: Params }) 
   const project = await getProjectDetail(projectId)
   if (!project || project.agency_id !== agencyId) notFound()
 
-  const [deliverables, credentials, auditLogs] = await Promise.all([
+  const [deliverables, credentials] = await Promise.all([
     getDeliverablesForProject(projectId),
     getCredentials(projectId),
-    getAuditLogsForProject(projectId),
   ])
 
   const status = statusConfig[project.status] ?? statusConfig.draft
@@ -84,24 +80,11 @@ export default async function ProjectDetailPage({ params }: { params: Params }) 
         {/* HITL banner for draft projects */}
         {project.status === "draft" && <HitlBanner projectId={projectId} />}
 
-        {/* SOW upload / re-extraction */}
-        <SowReupload projectId={projectId} currentSowUrl={project.sow_document_url} />
-
         {/* Deliverables */}
-        <DeliverableChecklist projectId={projectId} deliverables={deliverables} />
+        <DeliverableChecklist projectId={projectId} deliverables={deliverables} projectStatus={project.status} />
 
         {/* Credential vault */}
-        <CredentialVault projectId={projectId} credentials={credentials} />
-
-        {/* Activity timeline */}
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Activity
-          </h2>
-          <div className="rounded-[1.5rem] border border-border/70 bg-card p-5">
-            <AuditLogTimeline entries={auditLogs} />
-          </div>
-        </section>
+        <CredentialVault projectId={projectId} credentials={credentials} projectStatus={project.status} />
       </div>
     </div>
   )

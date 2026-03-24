@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Lock,
   Paperclip,
   Pencil,
   PlusCircle,
@@ -39,11 +40,13 @@ function DeliverableRow({
   d,
   onEdit,
   onDelete,
+  locked,
 }: {
   projectId: string
   d: DeliverableRow
   onEdit: () => void
   onDelete: () => void
+  locked: boolean
 }) {
   const fmt = getFormat(d.required_format)
   const isText = fmt?.type === "text"
@@ -127,21 +130,23 @@ function DeliverableRow({
           {d.is_verified ? "Verified" : "Pending"}
         </Badge>
 
-        <div className="flex items-center gap-1">
-          <Button size="icon-sm" variant="ghost" onClick={onEdit} aria-label="Edit deliverable">
-            <Pencil />
-          </Button>
-          <Button
-            size="icon-sm" variant="ghost" onClick={onDelete} aria-label="Delete deliverable"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 />
-          </Button>
-        </div>
+        {!locked && (
+          <div className="flex items-center gap-1">
+            <Button size="icon-sm" variant="ghost" onClick={onEdit} aria-label="Edit deliverable">
+              <Pencil />
+            </Button>
+            <Button
+              size="icon-sm" variant="ghost" onClick={onDelete} aria-label="Delete deliverable"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* ── Text-value input (hex / url / text formats) ── */}
-      {isText && (
+      {isText && !locked && (
         <div className="ml-7 flex items-center gap-2">
           <input
             type={fmt?.value === "url" ? "url" : "text"}
@@ -163,7 +168,7 @@ function DeliverableRow({
       )}
 
       {/* ── File upload row (file formats or no format) ── */}
-      {!isText && (
+      {!isText && !locked && (
         <div className="ml-7 flex flex-wrap items-center gap-2">
           {fileName && (
             <span className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
@@ -232,9 +237,11 @@ function DeliverableRow({
 type Props = {
   projectId: string
   deliverables: DeliverableRow[]
+  projectStatus: string
 }
 
-export function DeliverableChecklist({ projectId, deliverables }: Props) {
+export function DeliverableChecklist({ projectId, deliverables, projectStatus }: Props) {
+  const locked = projectStatus === "closed"
   const [addOpen, setAddOpen] = React.useState(false)
   const [editTarget, setEditTarget] = React.useState<DeliverableRow | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<DeliverableRow | null>(null)
@@ -260,15 +267,22 @@ export function DeliverableChecklist({ projectId, deliverables }: Props) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Deliverables
         </h2>
-        <Button
-          size="sm"
-          variant="outline"
-          className="rounded-full"
-          onClick={() => setAddOpen(true)}
-        >
-          <PlusCircle />
-          Add
-        </Button>
+        {locked ? (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Lock className="size-3" />
+            Project closed
+          </span>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => setAddOpen(true)}
+          >
+            <PlusCircle />
+            Add
+          </Button>
+        )}
       </div>
 
       {deliverables.length === 0 ? (
@@ -284,26 +298,31 @@ export function DeliverableChecklist({ projectId, deliverables }: Props) {
               d={d}
               onEdit={() => setEditTarget(d)}
               onDelete={() => setDeleteTarget(d)}
+              locked={locked}
             />
           ))}
         </div>
       )}
 
       {/* Add modal */}
-      <AddEditDeliverableModal
-        projectId={projectId}
-        deliverable={null}
-        open={addOpen}
-        onOpenChange={setAddOpen}
-      />
+      {!locked && (
+        <AddEditDeliverableModal
+          projectId={projectId}
+          deliverable={null}
+          open={addOpen}
+          onOpenChange={setAddOpen}
+        />
+      )}
 
       {/* Edit modal */}
-      <AddEditDeliverableModal
-        projectId={projectId}
-        deliverable={editTarget}
-        open={editTarget !== null}
-        onOpenChange={(o) => { if (!o) setEditTarget(null) }}
-      />
+      {!locked && (
+        <AddEditDeliverableModal
+          projectId={projectId}
+          deliverable={editTarget}
+          open={editTarget !== null}
+          onOpenChange={(o) => { if (!o) setEditTarget(null) }}
+        />
+      )}
 
       {/* Delete confirmation */}
       <Dialog

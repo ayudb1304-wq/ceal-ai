@@ -7,6 +7,7 @@ import {
   approveChecklist,
   updateProjectSowUrl,
   getProjectEmailContext,
+  getProjectStatus,
 } from "@/lib/supabase/projects"
 import {
   upsertDeliverable,
@@ -14,6 +15,7 @@ import {
   updateDeliverableFile,
   updateDeliverableTextValue,
   setDeliverableVerified,
+  getDeliverablesForProject,
 } from "@/lib/supabase/deliverables"
 import { createCredential, updateCredential, deleteCredential } from "@/lib/supabase/credentials"
 import { publishProject } from "@/lib/supabase/magic-links"
@@ -28,6 +30,11 @@ async function requireAgencyId(): Promise<string> {
   const agencyId = await getAgencyIdByEmail(session.user.email)
   if (!agencyId) throw new Error("Agency not found")
   return agencyId
+}
+
+async function requireProjectOpen(projectId: string): Promise<void> {
+  const status = await getProjectStatus(projectId)
+  if (status === "closed") throw new Error("This project is closed and cannot be modified.")
 }
 
 // ── Projects ──────────────────────────────────────────────────────────────────
@@ -74,6 +81,7 @@ export async function upsertDeliverableAction(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAgencyId()
+    await requireProjectOpen(projectId)
     await upsertDeliverable(projectId, deliverable)
     const isEdit = Boolean(deliverable.id)
     await writeAuditLog(
@@ -96,6 +104,7 @@ export async function deleteDeliverableAction(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAgencyId()
+    await requireProjectOpen(projectId)
     await deleteDeliverable(deliverableId)
     await writeAuditLog(projectId, "deliverable_deleted", "Deliverable deleted", {
       metadata: { deliverableId },
@@ -121,6 +130,7 @@ export async function uploadDeliverableFileAction(
 ): Promise<{ success: boolean; isVerified?: boolean; mismatch?: string; error?: string }> {
   try {
     await requireAgencyId()
+    await requireProjectOpen(projectId)
 
     const file = formData.get("file")
     if (!(file instanceof File) || file.size === 0) {
@@ -172,6 +182,7 @@ export async function updateDeliverableTextValueAction(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAgencyId()
+    await requireProjectOpen(projectId)
     await updateDeliverableTextValue(deliverableId, textValue)
     await writeAuditLog(projectId, "deliverable_value_saved", `Value saved: ${textValue.trim() || "(cleared)"}`, {
       deliverableId,
@@ -192,6 +203,7 @@ export async function toggleVerifiedAction(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAgencyId()
+    await requireProjectOpen(projectId)
     await setDeliverableVerified(deliverableId, isVerified)
     await writeAuditLog(
       projectId,
@@ -216,6 +228,7 @@ export async function createCredentialAction(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAgencyId()
+    await requireProjectOpen(projectId)
     await createCredential(projectId, label, value)
     await writeAuditLog(projectId, "credential_added", `Credential added: ${label}`, {
       metadata: { label },
@@ -238,6 +251,7 @@ export async function updateCredentialAction(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAgencyId()
+    await requireProjectOpen(projectId)
     await updateCredential(credentialId, label, value)
     await writeAuditLog(projectId, "credential_updated", `Credential updated: ${label}`, {
       metadata: { label },
@@ -255,6 +269,7 @@ export async function deleteCredentialAction(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAgencyId()
+    await requireProjectOpen(projectId)
     await deleteCredential(credentialId)
     await writeAuditLog(projectId, "credential_deleted", "Credential deleted", {
       metadata: { credentialId },
@@ -291,6 +306,9 @@ export async function reExtractSowAction(
     if (!(file instanceof File) || file.size === 0) {
       return { status: "error", error: "Please select a SOW file." }
     }
+
+    const status = await getProjectStatus(projectId)
+    if (status === "closed") return { status: "error", error: "This project is closed and cannot be modified." }
 
     // Upload SOW to storage and update project record
     const sowPath = await uploadSowDocument(projectId, file)
@@ -343,15 +361,36 @@ export async function reExtractSowAction(
 // ── Publish ───────────────────────────────────────────────────────────────────
 
 export async function publishProjectAction(
-  projectId: string
-): Promise<{ success: boolean; portalUrl?: string; clientEmail?: string; error?: string }> {
+  projectId: string,
+  force = false
+): Promise<{ success: boolean; portalUrl?: string; clientEmail?: string; pendingWarning?: number; error?: string }> {
   try {
     await requireAgencyId()
 
-    const [portalUrl, context] = await Promise.all([
-      publishProject(projectId),
+    // Pre-publish hard blocks
+    const [projectStatus, projectDetail] = await Promise.all([
+      getProjectStatus(projectId),
       getProjectEmailContext(projectId),
     ])
+
+    if (projectStatus === "draft") {
+      return { success: false, error: "Approve the setup checklist before publishing to the client." }
+    }
+    if (!projectDetail?.clientEmail) {
+      return { success: false, error: "Client email is missing. Add a client email before publishing." }
+    }
+
+    // Soft warning: unverified deliverables
+    if (!force) {
+      const deliverables = await getDeliverablesForProject(projectId)
+      const pendingCount = deliverables.filter((d) => !d.is_verified).length
+      if (pendingCount > 0) {
+        return { success: false, pendingWarning: pendingCount }
+      }
+    }
+
+    const portalUrl = await publishProject(projectId)
+    const context = projectDetail
 
     if (context) {
       await sendPortalEmail({

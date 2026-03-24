@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { PlusCircle, Eye, EyeOff, Copy, Check, Trash2, KeyRound, Pencil } from "lucide-react"
+import { Lock, PlusCircle, Eye, EyeOff, Copy, Check, Trash2, KeyRound, Pencil } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -23,9 +23,11 @@ import type { CredentialRow } from "@/lib/supabase/credentials"
 type Props = {
   projectId: string
   credentials: CredentialRow[]
+  projectStatus: string
 }
 
-export function CredentialVault({ projectId, credentials }: Props) {
+export function CredentialVault({ projectId, credentials, projectStatus }: Props) {
+  const locked = projectStatus === "closed"
   const [addOpen, setAddOpen] = React.useState(false)
   const [editTarget, setEditTarget] = React.useState<CredentialRow | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<CredentialRow | null>(null)
@@ -51,15 +53,22 @@ export function CredentialVault({ projectId, credentials }: Props) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Credential Vault
         </h2>
-        <Button
-          size="sm"
-          variant="outline"
-          className="rounded-full"
-          onClick={() => setAddOpen(true)}
-        >
-          <PlusCircle />
-          Add Credential
-        </Button>
+        {locked ? (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Lock className="size-3" />
+            Project closed
+          </span>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => setAddOpen(true)}
+          >
+            <PlusCircle />
+            Add Credential
+          </Button>
+        )}
       </div>
 
       {credentials.length === 0 ? (
@@ -76,13 +85,14 @@ export function CredentialVault({ projectId, credentials }: Props) {
               credential={cred}
               onEdit={() => setEditTarget(cred)}
               onDelete={() => setDeleteTarget(cred)}
+              locked={locked}
             />
           ))}
         </div>
       )}
 
       {/* Edit credential modal */}
-      {editTarget && (
+      {!locked && editTarget && (
         <EditCredentialModal
           projectId={projectId}
           credential={editTarget}
@@ -92,11 +102,13 @@ export function CredentialVault({ projectId, credentials }: Props) {
       )}
 
       {/* Add credential modal */}
-      <AddCredentialModal
-        projectId={projectId}
-        open={addOpen}
-        onOpenChange={setAddOpen}
-      />
+      {!locked && (
+        <AddCredentialModal
+          projectId={projectId}
+          open={addOpen}
+          onOpenChange={setAddOpen}
+        />
+      )}
 
       {/* Delete confirmation */}
       <Dialog
@@ -136,10 +148,12 @@ function CredentialCard({
   credential,
   onEdit,
   onDelete,
+  locked,
 }: {
   credential: CredentialRow
   onEdit: () => void
   onDelete: () => void
+  locked: boolean
 }) {
   const [revealed, setRevealed] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
@@ -163,25 +177,27 @@ function CredentialCard({
           </span>
           <span className="text-sm font-medium">{credential.label}</span>
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            onClick={onEdit}
-            aria-label="Edit credential"
-          >
-            <Pencil />
-          </Button>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            onClick={onDelete}
-            aria-label="Delete credential"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 />
-          </Button>
-        </div>
+        {!locked && (
+          <div className="flex items-center gap-1">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={onEdit}
+              aria-label="Edit credential"
+            >
+              <Pencil />
+            </Button>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={onDelete}
+              aria-label="Delete credential"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
