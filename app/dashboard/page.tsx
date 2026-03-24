@@ -5,7 +5,7 @@ import { auth } from "@/auth"
 import { getOnboardingStateByEmail } from "@/lib/supabase/onboarding"
 import { getClientsForAgency } from "@/lib/supabase/clients"
 import { ClientCard } from "@/src/components/dashboard/ClientCard"
-import { NewProjectModal } from "@/src/components/dashboard/NewProjectModal"
+import { AddClientModal } from "@/src/components/clients/AddClientModal"
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -30,7 +30,7 @@ export default async function DashboardPage() {
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">Clients</h1>
           </div>
-          <NewProjectModal clients={clients} />
+          <AddClientModal />
         </div>
 
         {/* Clients grid */}
@@ -41,7 +41,7 @@ export default async function DashboardPage() {
             </span>
             <p className="mt-4 text-sm font-medium">No clients yet</p>
             <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-              Create your first project to add a client and start building a closing portal.
+              Add your first client to start building structured closing portals for your work.
             </p>
           </div>
         ) : (

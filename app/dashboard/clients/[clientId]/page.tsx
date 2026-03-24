@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation"
-import { Building2, Mail, Phone, FolderOpen } from "lucide-react"
+import Link from "next/link"
+import { ArrowLeft, Building2, FolderOpen, Mail, Phone } from "lucide-react"
 
 import { auth } from "@/auth"
 import { getOnboardingStateByEmail } from "@/lib/supabase/onboarding"
@@ -30,11 +31,30 @@ export default async function ClientDetailPage({
   return (
     <div className="px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl space-y-8">
+        {/* Back link */}
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" />
+          All clients
+        </Link>
+
         {/* Client header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
+          <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Client</p>
-            <h1 className="text-2xl font-semibold tracking-tight">{client.name}</h1>
+
+            {/* Name + project count badge */}
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight">{client.name}</h1>
+              <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+                <FolderOpen className="size-3" />
+                {projects.length} {projects.length === 1 ? "project" : "projects"}
+              </span>
+            </div>
+
+            {/* Contact row */}
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               {client.company && (
                 <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -55,11 +75,14 @@ export default async function ClientDetailPage({
                 </p>
               )}
             </div>
+
+            {/* Internal notes */}
             {client.notes && (
-              <p className="mt-2 max-w-prose text-sm text-muted-foreground">{client.notes}</p>
+              <p className="mt-1 max-w-prose text-sm text-muted-foreground">{client.notes}</p>
             )}
           </div>
 
+          {/* Action buttons */}
           <div className="flex shrink-0 gap-2">
             <EditClientModal client={client} />
             <NewProjectModal
@@ -72,7 +95,7 @@ export default async function ClientDetailPage({
           </div>
         </div>
 
-        {/* Projects */}
+        {/* Projects grid */}
         <div className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
             Projects
@@ -85,7 +108,7 @@ export default async function ClientDetailPage({
               </span>
               <p className="mt-3 text-sm font-medium">No projects yet</p>
               <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                Create a project for {client.name} to get started.
+                Use the &quot;New Project&quot; button above to create one for {client.name}.
               </p>
             </div>
           ) : (
