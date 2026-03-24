@@ -153,11 +153,11 @@ All tables have RLS enabled. Migrations live in `supabase/migrations/`.
 - [x] Agency name and logo (if set) shown at the top of the sidebar.
 
 #### 3b. Settings Page (`/dashboard/settings`)
-- [ ] **Agency Profile tab:** Edit name, contact name, role.
-- [ ] **Branding tab:** Upload/replace logo to Supabase Storage; update brand color.
-- [ ] **Legal & Tax tab:** Edit GSTIN and bank details.
-- [ ] **Account tab:** Show connected Google account email; sign out button.
-- [ ] All edits saved via a Server Action. Success/error shown via modal.
+- [x] **Agency Profile tab:** Edit name, contact name, role.
+- [x] **Branding tab:** Upload/replace logo (filename stored; Supabase Storage wiring deferred); update brand color.
+- [x] **Legal & Tax tab:** Edit GSTIN and bank details.
+- [x] **Account tab:** Show connected Google account email; sign out button.
+- [x] All edits saved via Server Actions. Success/error shown inline per form.
 
 #### 3c. Dashboard — Project List (`/dashboard`)
 - [x] Project cards with project name, client name, status badge.
