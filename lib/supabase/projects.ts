@@ -109,6 +109,42 @@ export async function approveChecklist(projectId: string): Promise<void> {
   if (error) throw new Error(`Failed to approve checklist: ${error.message}`)
 }
 
+export type ProjectEmailContext = {
+  clientName: string
+  clientEmail: string
+  projectName: string
+  agencyName: string
+}
+
+export async function getProjectEmailContext(
+  projectId: string
+): Promise<ProjectEmailContext | null> {
+  const supabase = createSupabaseAdminClient()
+
+  const { data: project, error: pErr } = await supabase
+    .from("projects")
+    .select("client_name, client_email, name, agency_id")
+    .eq("id", projectId)
+    .maybeSingle()
+
+  if (pErr || !project) return null
+
+  const { data: agency, error: aErr } = await supabase
+    .from("agencies")
+    .select("name")
+    .eq("id", project.agency_id)
+    .maybeSingle()
+
+  if (aErr) return null
+
+  return {
+    clientName: project.client_name,
+    clientEmail: project.client_email,
+    projectName: project.name ?? "Your Project",
+    agencyName: agency?.name ?? "Your Agency",
+  }
+}
+
 export async function updateProjectSowUrl(
   projectId: string,
   sowUrl: string

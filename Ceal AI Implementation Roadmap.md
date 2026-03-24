@@ -180,11 +180,12 @@ All tables have RLS enabled. Migrations live in `supabase/migrations/`.
 - [ ] **Republish / revoke** — clicking Publish again revokes the old token, generates a new 7-day token, and re-sends the Resend email.
 
 #### 3e. Resend Email Integration
-- [ ] Add `RESEND_API_KEY` to env.
-- [ ] On publish, call Resend API to send a branded email to `projects.client_email`.
+- [x] Add `RESEND_API_KEY` to env.
+- [x] On publish, call Resend API to send a branded email to `projects.client_email`.
   - Subject: _"Your [Project Name] assets are ready — [Agency Name]"_
-  - Body: agency logo, short message, prominent "View Your Assets" CTA button.
-- [ ] After publish, UI shows the magic link with "Copy Link" and "Resend Email" buttons.
+  - Body: agency name, short message, prominent "View Your Assets" CTA button.
+- [x] After publish, UI shows email confirmation, magic link with "Copy Link" and "Resend Email" buttons.
+- [x] Republish revokes old token before creating a new one.
 
 #### 3f. Audit Log
 - [ ] **Write logic:** Record the following events to `audit_logs` at the appropriate trigger points:

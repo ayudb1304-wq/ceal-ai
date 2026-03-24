@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Send, Copy, Check, ExternalLink } from "lucide-react"
+import { Check, Copy, ExternalLink, Mail, RefreshCw, Send } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { publishProjectAction } from "@/app/dashboard/actions"
+import { publishProjectAction, resendPortalEmailAction } from "@/app/dashboard/actions"
 import type { ProjectStatus } from "@/lib/supabase/projects"
 
 type Props = {
@@ -23,7 +23,10 @@ export function PublishButton({ projectId, status }: Props) {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [portalUrl, setPortalUrl] = React.useState<string | null>(null)
+  const [clientEmail, setClientEmail] = React.useState<string | null>(null)
   const [copied, setCopied] = React.useState(false)
+  const [resending, setResending] = React.useState(false)
+  const [resendStatus, setResendStatus] = React.useState<"idle" | "sent" | "error">("idle")
 
   const disabled = status !== "active"
 
@@ -37,6 +40,8 @@ export function PublishButton({ projectId, status }: Props) {
       return
     }
     setPortalUrl(result.portalUrl ?? null)
+    setClientEmail(result.clientEmail ?? null)
+    setResendStatus("idle")
   }
 
   async function handleCopy() {
@@ -46,8 +51,24 @@ export function PublishButton({ projectId, status }: Props) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // clipboard API may fail in non-secure contexts
+      // clipboard may fail in non-secure contexts
     }
+  }
+
+  async function handleResend() {
+    if (!portalUrl) return
+    setResending(true)
+    setResendStatus("idle")
+    const result = await resendPortalEmailAction(projectId, portalUrl)
+    setResending(false)
+    setResendStatus(result.success ? "sent" : "error")
+  }
+
+  function handleClose() {
+    setPortalUrl(null)
+    setClientEmail(null)
+    setCopied(false)
+    setResendStatus("idle")
   }
 
   return (
@@ -63,6 +84,7 @@ export function PublishButton({ projectId, status }: Props) {
         {loading ? "Publishing…" : "Publish to Client"}
       </Button>
 
+      {/* Publish error modal */}
       {error && !portalUrl && (
         <Dialog open onOpenChange={() => setError(null)}>
           <DialogContent className="max-w-sm rounded-[1.5rem]">
@@ -71,53 +93,73 @@ export function PublishButton({ projectId, status }: Props) {
             </DialogHeader>
             <p className="text-sm text-destructive">{error}</p>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setError(null)}>
-                Close
-              </Button>
+              <Button variant="outline" onClick={() => setError(null)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
-      <Dialog
-        open={portalUrl !== null}
-        onOpenChange={(o) => {
-          if (!o) {
-            setPortalUrl(null)
-            setCopied(false)
-          }
-        }}
-      >
+      {/* Success modal */}
+      <Dialog open={portalUrl !== null} onOpenChange={(o) => { if (!o) handleClose() }}>
         <DialogContent className="max-w-md rounded-[1.5rem]">
           <DialogHeader>
-            <DialogTitle>Client portal link ready</DialogTitle>
+            <DialogTitle>Client portal published</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Share this link with your client. It expires in 7 days.
-            </p>
-            <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2.5">
-              <code className="min-w-0 flex-1 truncate text-xs">{portalUrl}</code>
+
+          <div className="space-y-4">
+            {/* Email confirmation */}
+            {clientEmail && (
+              <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+                <Mail className="size-4 shrink-0 text-emerald-600" />
+                <p className="text-sm text-emerald-700">
+                  Email sent to <span className="font-medium">{clientEmail}</span>
+                </p>
+              </div>
+            )}
+
+            {/* Portal URL */}
+            <div>
+              <p className="mb-2 text-sm text-muted-foreground">
+                Portal link — expires in 7 days.
+              </p>
+              <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2.5">
+                <code className="min-w-0 flex-1 truncate text-xs">{portalUrl}</code>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={handleCopy}
+                  aria-label="Copy link"
+                >
+                  {copied ? <Check className="text-green-500" /> : <Copy />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Resend email */}
+            <div className="flex items-center gap-3">
               <Button
-                size="icon-sm"
-                variant="ghost"
-                onClick={handleCopy}
-                aria-label="Copy link"
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                onClick={handleResend}
+                disabled={resending}
               >
-                {copied ? <Check className="text-green-500" /> : <Copy />}
+                <RefreshCw className={resending ? "animate-spin" : ""} />
+                {resending ? "Sending…" : "Resend email"}
               </Button>
+              {resendStatus === "sent" && (
+                <span className="flex items-center gap-1 text-xs text-emerald-600">
+                  <Check className="size-3" /> Email resent
+                </span>
+              )}
+              {resendStatus === "error" && (
+                <span className="text-xs text-destructive">Failed to resend</span>
+              )}
             </div>
           </div>
+
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setPortalUrl(null)
-                setCopied(false)
-              }}
-            >
-              Close
-            </Button>
+            <Button variant="outline" onClick={handleClose}>Close</Button>
             <Button asChild>
               <a href={portalUrl ?? "#"} target="_blank" rel="noopener noreferrer">
                 <ExternalLink />

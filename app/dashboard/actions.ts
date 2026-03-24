@@ -6,6 +6,7 @@ import {
   createProject,
   approveChecklist,
   updateProjectSowUrl,
+  getProjectEmailContext,
 } from "@/lib/supabase/projects"
 import {
   upsertDeliverable,
@@ -16,6 +17,7 @@ import {
 import { createCredential, deleteCredential } from "@/lib/supabase/credentials"
 import { publishProject } from "@/lib/supabase/magic-links"
 import { uploadDeliverableFile, uploadSowDocument } from "@/lib/supabase/storage"
+import { sendPortalEmail } from "@/lib/email/resend"
 import { revalidatePath } from "next/cache"
 
 async function requireAgencyId(): Promise<string> {
@@ -254,18 +256,55 @@ export async function reExtractSowAction(
 
 export async function publishProjectAction(
   projectId: string
-): Promise<{ success: boolean; portalUrl?: string; error?: string }> {
+): Promise<{ success: boolean; portalUrl?: string; clientEmail?: string; error?: string }> {
   try {
     await requireAgencyId()
-    const portalUrl = await publishProject(projectId)
-    // Stub: log to console. Replace with Resend email in Phase 3.
-    console.log(`[PUBLISH] Portal URL generated: ${portalUrl}`)
+
+    const [portalUrl, context] = await Promise.all([
+      publishProject(projectId),
+      getProjectEmailContext(projectId),
+    ])
+
+    if (context) {
+      await sendPortalEmail({
+        to: context.clientEmail,
+        clientName: context.clientName,
+        projectName: context.projectName,
+        agencyName: context.agencyName,
+        portalUrl,
+      })
+    }
+
     revalidatePath(`/dashboard/projects/${projectId}`)
-    return { success: true, portalUrl }
+    return { success: true, portalUrl, clientEmail: context?.clientEmail }
   } catch (e) {
     return {
       success: false,
       error: e instanceof Error ? e.message : "Failed to publish project",
     }
+  }
+}
+
+export async function resendPortalEmailAction(
+  projectId: string,
+  portalUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAgencyId()
+
+    const context = await getProjectEmailContext(projectId)
+    if (!context) return { success: false, error: "Project not found." }
+
+    await sendPortalEmail({
+      to: context.clientEmail,
+      clientName: context.clientName,
+      projectName: context.projectName,
+      agencyName: context.agencyName,
+      portalUrl,
+    })
+
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Failed to resend email." }
   }
 }
