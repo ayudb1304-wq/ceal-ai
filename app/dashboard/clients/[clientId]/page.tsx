@@ -10,11 +10,11 @@ import { ProjectCard } from "@/src/components/dashboard/ProjectCard"
 import { EditClientModal } from "@/src/components/clients/EditClientModal"
 import { NewProjectModal } from "@/src/components/dashboard/NewProjectModal"
 
-export default async function ClientDetailPage({
-  params,
-}: {
-  params: { clientId: string }
-}) {
+type Params = Promise<{ clientId: string }>
+
+export default async function ClientDetailPage({ params }: { params: Params }) {
+  const { clientId } = await params
+
   const session = await auth()
   if (!session?.user?.email) redirect("/auth/signin")
 
@@ -22,8 +22,8 @@ export default async function ClientDetailPage({
   if (!onboardingState.isComplete) redirect("/onboarding")
 
   const [client, projects] = await Promise.all([
-    getClientById(params.clientId),
-    getProjectsForClient(params.clientId),
+    getClientById(clientId),
+    getProjectsForClient(clientId),
   ])
 
   if (!client) notFound()
