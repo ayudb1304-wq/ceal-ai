@@ -3,12 +3,12 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronLeft, ChevronRight, FolderOpen, Menu, ScrollText, Settings2, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Menu, ScrollText, Settings2, Users, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
-  { label: "Projects", href: "/dashboard", icon: FolderOpen },
+  { label: "Clients", href: "/dashboard", icon: Users },
   { label: "Audit Log", href: "/dashboard/audit-log", icon: ScrollText },
   { label: "Settings", href: "/dashboard/settings", icon: Settings2 },
 ]

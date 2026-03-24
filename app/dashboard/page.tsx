@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation"
-import { FolderOpen } from "lucide-react"
+import { Users } from "lucide-react"
 
 import { auth } from "@/auth"
 import { getOnboardingStateByEmail } from "@/lib/supabase/onboarding"
-import { getProjectsForAgency } from "@/lib/supabase/projects"
-import { ProjectCard } from "@/src/components/dashboard/ProjectCard"
+import { getClientsForAgency } from "@/lib/supabase/clients"
+import { ClientCard } from "@/src/components/dashboard/ClientCard"
 import { NewProjectModal } from "@/src/components/dashboard/NewProjectModal"
 
 export default async function DashboardPage() {
@@ -15,8 +15,8 @@ export default async function DashboardPage() {
   const onboardingState = await getOnboardingStateByEmail(session.user.email)
   if (!onboardingState.isComplete) redirect("/onboarding")
 
-  const projects = onboardingState.agencyId
-    ? await getProjectsForAgency(onboardingState.agencyId)
+  const clients = onboardingState.agencyId
+    ? await getClientsForAgency(onboardingState.agencyId)
     : []
 
   return (
@@ -28,27 +28,26 @@ export default async function DashboardPage() {
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
               Dashboard
             </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">Projects</h1>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">Clients</h1>
           </div>
-          <NewProjectModal />
+          <NewProjectModal clients={clients} />
         </div>
 
-        {/* Project grid */}
-        {projects.length === 0 ? (
+        {/* Clients grid */}
+        {clients.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-border/70 bg-card py-20 text-center">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-              <FolderOpen className="h-6 w-6 text-muted-foreground" />
+              <Users className="h-6 w-6 text-muted-foreground" />
             </span>
-            <p className="mt-4 text-sm font-medium">No projects yet</p>
+            <p className="mt-4 text-sm font-medium">No clients yet</p>
             <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-              Create your first project to start building a structured closing portal for your
-              client.
+              Create your first project to add a client and start building a closing portal.
             </p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
+            {clients.map((client) => (
+              <ClientCard key={client.id} client={client} />
             ))}
           </div>
         )}

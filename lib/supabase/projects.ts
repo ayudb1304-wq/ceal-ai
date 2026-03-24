@@ -77,6 +77,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
 export async function createProject(
   agencyId: string,
   name: string,
+  clientId: string,
   clientName: string,
   clientEmail: string
 ): Promise<string> {
@@ -87,6 +88,7 @@ export async function createProject(
     .insert({
       agency_id: agencyId,
       name,
+      client_id: clientId,
       client_name: clientName,
       client_email: clientEmail,
       status: "active",
@@ -96,6 +98,41 @@ export async function createProject(
 
   if (error) throw new Error(`Failed to create project: ${error.message}`)
   return data.id
+}
+
+export async function getProjectsForClient(clientId: string): Promise<ProjectRow[]> {
+  const supabase = createSupabaseAdminClient()
+
+  const { data: projects, error } = await supabase
+    .from("projects")
+    .select("id, name, client_name, client_email, status, sow_document_url, created_at")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false })
+
+  if (error) throw new Error(`Failed to fetch projects: ${error.message}`)
+  if (!projects?.length) return []
+
+  const projectIds = projects.map((p) => p.id)
+
+  const { data: deliverables, error: delError } = await supabase
+    .from("deliverables")
+    .select("project_id, is_verified")
+    .in("project_id", projectIds)
+
+  if (delError) throw new Error(`Failed to fetch deliverable counts: ${delError.message}`)
+
+  const countMap: Record<string, { total: number; verified: number }> = {}
+  for (const d of deliverables ?? []) {
+    if (!countMap[d.project_id]) countMap[d.project_id] = { total: 0, verified: 0 }
+    countMap[d.project_id].total++
+    if (d.is_verified) countMap[d.project_id].verified++
+  }
+
+  return projects.map((p) => ({
+    ...p,
+    deliverable_count: countMap[p.id]?.total ?? 0,
+    verified_count: countMap[p.id]?.verified ?? 0,
+  }))
 }
 
 export async function approveChecklist(projectId: string): Promise<void> {

@@ -32,13 +32,15 @@ async function requireAgencyId(): Promise<string> {
 
 export async function createProjectAction(
   name: string,
+  clientId: string,
   clientName: string,
   clientEmail: string
 ): Promise<{ success: boolean; projectId?: string; error?: string }> {
   try {
     const agencyId = await requireAgencyId()
-    const projectId = await createProject(agencyId, name, clientName, clientEmail)
+    const projectId = await createProject(agencyId, name, clientId, clientName, clientEmail)
     revalidatePath("/dashboard")
+    revalidatePath(`/dashboard/clients/${clientId}`)
     return { success: true, projectId }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Failed to create project" }

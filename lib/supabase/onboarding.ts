@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server"
+import { upsertClientByEmail } from "@/lib/supabase/clients"
 
 export type OnboardingFormValues = {
   fullName: string
@@ -133,11 +134,18 @@ export async function saveOnboardingByEmail(
 
   let projectId: string
 
+  // Ensure a client record exists for this project's client
+  const clientId = await upsertClientByEmail(agency.id, {
+    name: values.clientName,
+    email: values.clientEmail || null,
+  })
+
   if (existingProject) {
     const { error: updateProjectError } = await supabase
       .from("projects")
       .update({
         name: values.projectName || null,
+        client_id: clientId,
         client_name: values.clientName,
         client_email: values.clientEmail,
         sow_document_url: values.sowFileName || null,
@@ -156,6 +164,7 @@ export async function saveOnboardingByEmail(
       .insert({
         agency_id: agency.id,
         name: values.projectName || null,
+        client_id: clientId,
         client_name: values.clientName,
         client_email: values.clientEmail,
         sow_document_url: values.sowFileName || null,
