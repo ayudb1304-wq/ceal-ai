@@ -18,6 +18,7 @@ import { createCredential, deleteCredential } from "@/lib/supabase/credentials"
 import { publishProject } from "@/lib/supabase/magic-links"
 import { uploadDeliverableFile, uploadSowDocument } from "@/lib/supabase/storage"
 import { sendPortalEmail } from "@/lib/email/resend"
+import { writeAuditLog } from "@/lib/supabase/audit-logs"
 import { revalidatePath } from "next/cache"
 
 async function requireAgencyId(): Promise<string> {
@@ -39,6 +40,9 @@ export async function createProjectAction(
   try {
     const agencyId = await requireAgencyId()
     const projectId = await createProject(agencyId, name, clientId, clientName, clientEmail)
+    await writeAuditLog(projectId, "project_created", "Project created", {
+      metadata: { projectName: name, clientName },
+    })
     revalidatePath("/dashboard")
     revalidatePath(`/dashboard/clients/${clientId}`)
     return { success: true, projectId }
@@ -53,6 +57,7 @@ export async function approveChecklistAction(
   try {
     await requireAgencyId() // verifies auth
     await approveChecklist(projectId)
+    await writeAuditLog(projectId, "checklist_approved", "Checklist approved — project set to active")
     revalidatePath(`/dashboard/projects/${projectId}`)
     return { success: true }
   } catch (e) {
@@ -130,6 +135,17 @@ export async function uploadDeliverableFileAction(
 
     await updateDeliverableFile(deliverableId, storagePath, isVerified)
 
+    await writeAuditLog(projectId, "deliverable_uploaded", `File uploaded: ${file.name}`, {
+      deliverableId,
+      metadata: { fileName: file.name, isVerified, mismatch: mismatch ?? null },
+    })
+    if (isVerified) {
+      await writeAuditLog(projectId, "deliverable_verified", `Deliverable verified: ${file.name}`, {
+        deliverableId,
+        metadata: { fileName: file.name, auto: true },
+      })
+    }
+
     revalidatePath(`/dashboard/projects/${projectId}`)
     revalidatePath("/dashboard")
     return { success: true, isVerified, mismatch }
@@ -146,6 +162,12 @@ export async function toggleVerifiedAction(
   try {
     await requireAgencyId()
     await setDeliverableVerified(deliverableId, isVerified)
+    await writeAuditLog(
+      projectId,
+      "deliverable_verified",
+      isVerified ? "Deliverable manually verified" : "Deliverable marked unverified",
+      { deliverableId, metadata: { isVerified, manual: true } }
+    )
     revalidatePath(`/dashboard/projects/${projectId}`)
     revalidatePath("/dashboard")
     return { success: true }
@@ -164,6 +186,9 @@ export async function createCredentialAction(
   try {
     await requireAgencyId()
     await createCredential(projectId, label, value)
+    await writeAuditLog(projectId, "credential_added", `Credential added: ${label}`, {
+      metadata: { label },
+    })
     revalidatePath(`/dashboard/projects/${projectId}`)
     return { success: true }
   } catch (e) {
@@ -277,6 +302,9 @@ export async function publishProjectAction(
       })
     }
 
+    await writeAuditLog(projectId, "project_published", "Portal published — magic link generated", {
+      metadata: { clientEmail: context?.clientEmail ?? null },
+    })
     revalidatePath(`/dashboard/projects/${projectId}`)
     return { success: true, portalUrl, clientEmail: context?.clientEmail }
   } catch (e) {
