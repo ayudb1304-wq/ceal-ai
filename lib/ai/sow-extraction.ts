@@ -1,6 +1,7 @@
 import "server-only"
 
 import type { SowExtractionResult } from "@/lib/ai/sow-types"
+import { FORMAT_VALUES, FORMAT_LIST_FOR_PROMPT } from "@/lib/deliverable-formats"
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
 const GEMINI_MODEL = "gemini-2.5-flash"
@@ -8,9 +9,10 @@ const GEMINI_MODEL = "gemini-2.5-flash"
 const EXTRACTION_INSTRUCTIONS = [
   "Extract all specific deliverables and technical credentials required in this SOW.",
   "Return only valid JSON. Use the schema exactly.",
-  "Deliverables: output each as a SINGLE checklist item—one upload per row. One deliverable = one concrete asset (e.g. 'Vector Logo Source', 'Brand Guidelines PDF'), not umbrella items like 'All Project Files' or 'Verified Project Files'.",
-  "requiredFormat must be a specific format or tight alternative (e.g. '.ai or .eps', '.pdf', '.mp4'). Never use 'Various' or long lists like '.ai, .eps, .psd, .mov, .mp4, .pdf'.",
-  "Credentials: name each from the SOW (e.g. 'Staging Server Login', 'API Key'). Avoid generic labels like 'Generic Encrypted Project Keys' unless the SOW uses that wording.",
+  "Deliverables: output each as a SINGLE checklist item—one row per concrete asset (e.g. 'Vector Logo Source', 'Brand Guidelines PDF'), not umbrella items like 'All Project Files'.",
+  `requiredFormat MUST be exactly one value from this list: ${FORMAT_LIST_FOR_PROMPT}. No other values are allowed.`,
+  "For colour codes use 'hex', for website/staging links use 'url', for short text values use 'text'. For all other assets choose the closest file extension.",
+  "Credentials: name each from the SOW (e.g. 'Staging Server Login', 'API Key'). Avoid generic labels unless the SOW uses that wording.",
   "If the SOW is vague, still output concrete deliverable titles and put ambiguity in the notes array.",
 ].join("\n")
 
@@ -26,6 +28,26 @@ function getGeminiApiKey() {
 
 function sanitizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : ""
+}
+
+/** Snap an AI-generated format string to the nearest allowed value, or null. */
+function normalizeFormat(raw: string): string | null {
+  if (!raw) return null
+  const lower = raw.toLowerCase().trim()
+  // Exact match
+  if (FORMAT_VALUES.includes(lower)) return lower
+  // Allow .jpeg → .jpg
+  if (lower === ".jpeg") return ".jpg"
+  // Allow .wav → .mp3
+  if (lower === ".wav") return ".mp3"
+  // If the AI output contains a known value as a substring, pick the first match
+  const found = FORMAT_VALUES.find((v) => lower.includes(v))
+  if (found) return found
+  // Text-type synonyms
+  if (lower.includes("hex") || lower.includes("color") || lower.includes("colour")) return "hex"
+  if (lower.includes("url") || lower.includes("link") || lower.includes("http")) return "url"
+  if (lower.includes("text") || lower.includes("note")) return "text"
+  return null
 }
 
 function normalizeResult(data: unknown): SowExtractionResult {
@@ -44,7 +66,7 @@ function normalizeResult(data: unknown): SowExtractionResult {
             return {
               title: sanitizeText((value as Record<string, unknown>).title),
               description: sanitizeText((value as Record<string, unknown>).description),
-              requiredFormat: sanitizeText((value as Record<string, unknown>).requiredFormat),
+              requiredFormat: normalizeFormat(sanitizeText((value as Record<string, unknown>).requiredFormat)) ?? "",
               category: sanitizeText((value as Record<string, unknown>).category),
             }
           })

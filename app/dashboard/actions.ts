@@ -12,6 +12,7 @@ import {
   upsertDeliverable,
   deleteDeliverable,
   updateDeliverableFile,
+  updateDeliverableTextValue,
   setDeliverableVerified,
 } from "@/lib/supabase/deliverables"
 import { createCredential, updateCredential, deleteCredential } from "@/lib/supabase/credentials"
@@ -151,6 +152,22 @@ export async function uploadDeliverableFileAction(
     return { success: true, isVerified, mismatch }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Upload failed." }
+  }
+}
+
+export async function updateDeliverableTextValueAction(
+  projectId: string,
+  deliverableId: string,
+  textValue: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAgencyId()
+    await updateDeliverableTextValue(deliverableId, textValue)
+    revalidatePath(`/dashboard/projects/${projectId}`)
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Failed to save value." }
   }
 }
 

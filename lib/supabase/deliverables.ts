@@ -8,6 +8,7 @@ export type DeliverableRow = {
   required_format: string | null
   is_verified: boolean
   file_url: string | null
+  text_value: string | null
   metadata: Record<string, unknown>
   created_at: string
 }
@@ -91,6 +92,23 @@ export async function setDeliverableVerified(id: string, isVerified: boolean): P
     .eq("id", id)
 
   if (error) throw new Error(`Failed to update verification status: ${error.message}`)
+}
+
+export async function updateDeliverableTextValue(
+  id: string,
+  textValue: string
+): Promise<void> {
+  const supabase = createSupabaseAdminClient()
+
+  const { error } = await supabase
+    .from("deliverables")
+    .update({
+      text_value: textValue || null,
+      is_verified: textValue.trim().length > 0,
+    })
+    .eq("id", id)
+
+  if (error) throw new Error(`Failed to update deliverable value: ${error.message}`)
 }
 
 export async function deleteDeliverable(id: string): Promise<void> {
