@@ -2,6 +2,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server"
 
 const BUCKET = "deliverable-files"
 const SOW_BUCKET = "sow-documents"
+const CERT_BUCKET = "certificates"
 
 /**
  * Upload a file for a deliverable.
@@ -54,6 +55,38 @@ export async function uploadSowDocument(projectId: string, file: File): Promise<
   if (error) throw new Error(`SOW upload failed: ${error.message}`)
 
   return path
+}
+
+/**
+ * Upload a Handover Certificate PDF.
+ * Path: certificates/{projectId}/certificate.pdf
+ * Returns the storage path.
+ */
+export async function uploadCertificate(projectId: string, buffer: Buffer): Promise<string> {
+  const supabase = createSupabaseAdminClient()
+  const path = `${projectId}/certificate.pdf`
+
+  const { error } = await supabase.storage.from(CERT_BUCKET).upload(path, buffer, {
+    contentType: "application/pdf",
+    upsert: true,
+  })
+
+  if (error) throw new Error(`Certificate upload failed: ${error.message}`)
+  return path
+}
+
+/**
+ * Generate a signed URL for a certificate valid for 7 days.
+ */
+export async function getCertificateSignedUrl(path: string): Promise<string> {
+  const supabase = createSupabaseAdminClient()
+
+  const { data, error } = await supabase.storage
+    .from(CERT_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 7) // 7 days
+
+  if (error || !data?.signedUrl) throw new Error(`Failed to generate certificate URL: ${error?.message}`)
+  return data.signedUrl
 }
 
 /**

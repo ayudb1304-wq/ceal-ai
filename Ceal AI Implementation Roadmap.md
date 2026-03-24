@@ -1,6 +1,6 @@
 # **Ceal AI: Comprehensive Implementation Roadmap**
 
-> **Last Updated:** 2026-03-24 — Re-cut into MVP vs Post-MVP phases. Status tracked per feature.
+> **Last Updated:** 2026-03-25 — Phase 3 complete. Phase 4 in progress.
 
 This document is the master source of truth for building **Ceal AI**, a Micro-SaaS designed to bridge the "Terminal Friction Gap" in high-ticket creative projects. Use it alongside the Product Requirements Document and the Micro-SaaS Handoff-Audit Analysis.
 
@@ -134,81 +134,77 @@ All tables have RLS enabled. Migrations live in `supabase/migrations/`.
 ---
 
 ### **Phase 3: Agency Dashboard, Sidebar & Project Management**
-**Status: Core dashboard done — sidebar, settings, file uploads, audit log, email pending**
+**Status: Complete ✅**
 
 #### 3a. Sidebar Navigation
 - [x] **Layout:** A persistent sidebar layout wraps all routes under `/dashboard/*` via a shared layout component (`app/dashboard/layout.tsx`).
-- [x] **Desktop — Collapsible Icon Rail:**
-  - Collapsed state: narrow rail showing only icons + active indicator.
-  - Expanded state: icons + labels. Toggled by a collapse/expand button.
-  - State persisted in `localStorage` so preference survives page reload.
-- [x] **Mobile — Hamburger:**
-  - Sidebar hidden by default; a hamburger button in the top bar opens a slide-in drawer.
-  - Drawer overlays the content with a backdrop. Tap outside to close.
-- [x] **Navigation Items:**
-  - **Projects** — `/dashboard` (home, project list)
-  - **Audit Log** — `/dashboard/audit-log` (global log across all projects)
-  - **Settings** — `/dashboard/settings` (agency profile + account)
-- [x] Active route is highlighted with the primary brand color.
-- [x] Agency name and logo (if set) shown at the top of the sidebar.
+- [x] **Desktop — Collapsible Icon Rail:** Collapsed/expanded toggle, state persisted in `localStorage`.
+- [x] **Mobile — Hamburger:** Slide-in drawer with backdrop. Tap outside to close.
+- [x] **Navigation Items:** Clients → `/dashboard`, Audit Log → `/dashboard/audit-log`, Settings → `/dashboard/settings`.
+- [x] Active route highlighted with primary brand color. Agency name + logo at top.
 
 #### 3b. Settings Page (`/dashboard/settings`)
 - [x] **Agency Profile tab:** Edit name, contact name, role.
-- [x] **Branding tab:** Upload/replace logo (filename stored; Supabase Storage wiring deferred); update brand color.
+- [x] **Branding tab:** Update brand color (logo filename stored).
 - [x] **Legal & Tax tab:** Edit GSTIN and bank details.
 - [x] **Account tab:** Show connected Google account email; sign out button.
 - [x] All edits saved via Server Actions. Success/error shown inline per form.
 
-#### 3c. Dashboard — Project List (`/dashboard`)
-- [x] Project cards with project name, client name, status badge.
-- [x] "Percentage to Close" progress bar (verified deliverables / total deliverables × 100).
-- [x] "New Project" modal — create project with name, client name, client email (no SOW required).
-- [ ] Empty state illustration when no projects exist yet.
+#### 3c. Clients Section (`/dashboard` + `/dashboard/clients/[clientId]`)
+- [x] Dashboard home shows **clients grid** (`ClientCard`) — name, company, email, phone, project count badge.
+- [x] **Add Client** modal — name, company, email, phone, notes. Redirects to new client detail page on success.
+- [x] **Client detail page** — contact header with project count badge, back link, notes, Edit Client + New Project buttons.
+- [x] **Edit Client** modal — update all fields; auto-closes on save.
+- [x] **New Project** modal (on client detail) — client pre-locked; redirects to project page on success.
 
 #### 3d. Project Detail (`/dashboard/projects/[projectId]`)
 - [x] Deliverable checklist — add, edit, delete items.
-- [x] Each deliverable shows: title, description, required format, `Pending` / `Verified` badge.
-- [x] Credential Vault — add and delete encrypted credentials; reveal/copy UI.
-- [x] HITL Banner — persistent until agency approves checklist (transitions project `draft` → `active`).
-- [x] Publish button — generates 7-day magic link.
-- [ ] **SOW upload section** — upload/replace SOW, trigger AI extraction, append to checklist (see Phase 2).
-- [x] **File upload per deliverable** — upload button on each deliverable row; uploads file to Supabase Storage private bucket (`deliverable-files`).
-- [x] **Basic Software Probe** — on upload, server checks file extension against `required_format`. Match → `is_verified = true` + green "Verified" badge. Mismatch → upload accepted but "Pending" badge + warning: _"Expected `.ai`, got `.png`."_
-- [x] **Manual verification toggle** — agency can manually mark any deliverable as verified/unverified (for edge cases).
-- [ ] **Pre-publish guard** — if any deliverable has no file uploaded, a modal warns: _"X deliverables have no files. Publish anyway?"_
-- [ ] **Audit Log Timeline** — vertical timeline below the checklist showing all project events (see event list below). Read-only.
-- [ ] **Republish / revoke** — clicking Publish again revokes the old token, generates a new 7-day token, and re-sends the Resend email.
+- [x] **Fixed deliverable format set** — dropdown of 14 file formats + 3 text types (hex, url, text). AI constrained to this list with normalizer fallback.
+- [x] Each deliverable shows: title, description, format label, `Pending` / `Verified` badge.
+- [x] **File deliverables** — upload button per row, Supabase Storage (`deliverable-files` bucket), `accept` attribute scoped to format.
+- [x] **Text deliverables** (hex/url/text) — inline input + Save button; auto-marks verified on save.
+- [x] **Basic Software Probe** — extension check on upload. Match → `is_verified = true`. Mismatch → "Pending" badge + warning.
+- [x] **Manual verification toggle** — mark any deliverable verified/unverified.
+- [x] Credential Vault — add, edit, delete encrypted credentials; reveal/copy UI; edit modal pre-clears TBD placeholder.
+- [x] HITL Banner — persistent until agency approves checklist (`draft` → `active`).
+- [x] Publish button — generates 7-day magic link, sends Resend email, shows portal URL + copy + resend buttons.
+- [x] **SOW upload / re-extraction** — upload or replace SOW, Gemini extracts and appends deliverables + credentials.
+- [x] **Activity timeline** — vertical icon-rail timeline of all project events (read-only).
 
 #### 3e. Resend Email Integration
-- [x] Add `RESEND_API_KEY` to env.
-- [x] On publish, call Resend API to send a branded email to `projects.client_email`.
-  - Subject: _"Your [Project Name] assets are ready — [Agency Name]"_
-  - Body: agency name, short message, prominent "View Your Assets" CTA button.
-- [x] After publish, UI shows email confirmation, magic link with "Copy Link" and "Resend Email" buttons.
+- [x] On publish, sends branded email to client with "View My Assets" CTA.
 - [x] Republish revokes old token before creating a new one.
+- [x] "Resend Email" button with sent/error feedback on project detail.
 
 #### 3f. Audit Log
-- [ ] **Write logic:** Record the following events to `audit_logs` at the appropriate trigger points:
+- [x] **Write logic** — all 16 event types logged:
 
   | Event Type | Trigger |
   |---|---|
   | `project_created` | Agency creates a project |
   | `checklist_approved` | Agency approves HITL checklist |
-  | `deliverable_uploaded` | Agency uploads a file to a deliverable |
+  | `deliverable_added` | New deliverable created |
+  | `deliverable_updated` | Deliverable title/format/description edited |
+  | `deliverable_deleted` | Deliverable removed |
+  | `deliverable_uploaded` | File uploaded to a deliverable |
+  | `deliverable_value_saved` | Text value (hex/url/text) saved |
   | `deliverable_verified` | Deliverable marked verified (auto or manual) |
-  | `credential_added` | Agency adds a credential |
-  | `project_published` | Agency publishes the client portal |
-  | `portal_accessed` | Client opens the magic link (first visit) |
-  | `portal_revisited` | Client opens the magic link again |
-  | `project_signed_off` | Client completes final sign-off |
+  | `credential_added` | Credential added |
+  | `credential_updated` | Credential label/value edited |
+  | `credential_deleted` | Credential deleted |
+  | `sow_uploaded` | SOW uploaded and extracted |
+  | `project_published` | Portal published |
+  | `portal_accessed` | Client first visit (Phase 4) |
+  | `portal_revisited` | Client return visit (Phase 4) |
+  | `project_signed_off` | Client sign-off (Phase 4) |
 
-- [ ] **Project-level timeline UI** — vertical timeline on the Project Detail page (below checklist).
-- [ ] **Global Audit Log page** (`/dashboard/audit-log`) — table view of all events across all projects; filterable by project and event type.
+- [x] **Project-level timeline UI** — vertical timeline on Project Detail page.
+- [x] **Global Audit Log page** (`/dashboard/audit-log`) — filterable table by project + event type.
 
 ---
 
 ### **Phase 4: Client "Certified Closing" Portal**
-**Status: Not started — highest priority after Phase 3**
+**Status: In progress**
 
 #### Route: `/portal/[token]`
 Publicly accessible. No account or password required.
