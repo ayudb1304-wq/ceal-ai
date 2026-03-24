@@ -1,11 +1,15 @@
 "use server"
 
 import { saveOnboardingByEmail, type OnboardingFormValues } from "@/lib/supabase/onboarding"
+import { upsertDeliverable } from "@/lib/supabase/deliverables"
+import { createCredential } from "@/lib/supabase/credentials"
 import type { ExtractSowState } from "@/src/components/onboarding/sow-extraction-state"
+import type { SowExtractionResult } from "@/lib/ai/sow-types"
 
 export async function completeOnboardingAction(
   email: string,
-  values: OnboardingFormValues
+  values: OnboardingFormValues,
+  extractionResult?: SowExtractionResult | null
 ): Promise<{ success: boolean; error?: string }> {
   if (!email) {
     return { success: false, error: "Missing authenticated email." }
@@ -19,7 +23,29 @@ export async function completeOnboardingAction(
   }
 
   try {
-    await saveOnboardingByEmail(email, values)
+    const { projectId } = await saveOnboardingByEmail(email, values)
+
+    if (extractionResult) {
+      // Bulk-insert extracted deliverables
+      await Promise.all(
+        extractionResult.deliverables.map((d) =>
+          upsertDeliverable(projectId, {
+            title: d.title,
+            description: d.description,
+            requiredFormat: d.requiredFormat,
+          })
+        )
+      )
+
+      // Bulk-insert extracted credentials with a placeholder value.
+      // The agency fills in the real values on the project detail page.
+      await Promise.all(
+        extractionResult.credentials.map((c) =>
+          createCredential(projectId, c.label, "TBD — add value in project")
+        )
+      )
+    }
+
     return { success: true }
   } catch (error) {
     return {

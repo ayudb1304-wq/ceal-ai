@@ -1,21 +1,30 @@
 "use client"
 
 import * as React from "react"
-import { FileJson, LoaderCircle, Sparkles } from "lucide-react"
+import { LoaderCircle, Sparkles } from "lucide-react"
 
 import { extractSowDeliverablesAction } from "@/app/(onboarding)/onboarding/actions"
 import { Button } from "@/components/ui/button"
 import { initialExtractSowState } from "@/src/components/onboarding/sow-extraction-state"
+import type { SowExtractionResult } from "@/lib/ai/sow-types"
 
 export function SowExtractionReview({
   onFileNameChange,
+  onExtractionComplete,
 }: {
   onFileNameChange: (fileName: string) => void
+  onExtractionComplete?: (result: SowExtractionResult) => void
 }) {
   const [state, formAction, isPending] = React.useActionState(
     extractSowDeliverablesAction,
     initialExtractSowState
   )
+
+  React.useEffect(() => {
+    if (state.status === "success" && state.result) {
+      onExtractionComplete?.(state.result)
+    }
+  }, [state.status, state.result, onExtractionComplete])
 
   return (
     <div className="space-y-5">
@@ -63,79 +72,44 @@ export function SowExtractionReview({
       ) : null}
 
       {state.status === "success" && state.result ? (
-        <div className="space-y-5">
-          <div className="rounded-[2rem] border border-border/70 bg-card p-5">
-            <p className="text-sm font-medium">Extraction review</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Review the structured output from <span className="font-medium">{state.fileName}</span>
-              .
-            </p>
+        <div className="rounded-[2rem] border border-border/70 bg-card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Extracted from {state.fileName}</p>
+            <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700">
+              {state.result.deliverables.length} deliverable{state.result.deliverables.length !== 1 ? "s" : ""}
+              {state.result.credentials.length > 0
+                ? ` · ${state.result.credentials.length} credential${state.result.credentials.length !== 1 ? "s" : ""}`
+                : ""}
+            </span>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-2">
-            <div className="rounded-[2rem] border border-border/70 bg-card p-5">
-              <p className="text-sm font-medium">Deliverables</p>
-              <div className="mt-4 space-y-3">
-                {state.result.deliverables.length > 0 ? (
-                  state.result.deliverables.map((deliverable) => (
-                    <div
-                      key={`${deliverable.title}-${deliverable.requiredFormat}`}
-                      className="rounded-2xl border border-border/60 px-4 py-4"
-                    >
-                      <p className="text-sm font-medium">{deliverable.title}</p>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {deliverable.description}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                        <span className="rounded-full bg-primary/10 px-3 py-1 text-primary">
-                          {deliverable.requiredFormat || "Format not specified"}
-                        </span>
-                        <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
-                          {deliverable.category || "Uncategorized"}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No deliverables were extracted.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-5">
-              <div className="rounded-[2rem] border border-border/70 bg-card p-5">
-                <p className="text-sm font-medium">Technical credentials</p>
-                <div className="mt-4 space-y-3">
-                  {state.result.credentials.length > 0 ? (
-                    state.result.credentials.map((credential) => (
-                      <div
-                        key={credential.label}
-                        className="rounded-2xl border border-border/60 px-4 py-4"
-                      >
-                        <p className="text-sm font-medium">{credential.label}</p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {credential.description}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No technical credentials were extracted.
-                    </p>
-                  )}
+          <div className="mt-4 h-48 overflow-y-auto rounded-2xl border border-border/50 bg-background p-3 space-y-2">
+            {state.result.deliverables.length > 0 ? (
+              state.result.deliverables.map((deliverable) => (
+                <div
+                  key={`${deliverable.title}-${deliverable.requiredFormat}`}
+                  className="rounded-xl border border-border/60 px-4 py-3"
+                >
+                  <p className="text-sm font-medium">{deliverable.title}</p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    {deliverable.requiredFormat ? (
+                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-primary">
+                        {deliverable.requiredFormat}
+                      </span>
+                    ) : null}
+                    {deliverable.category ? (
+                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-muted-foreground">
+                        {deliverable.category}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-
-              <div className="rounded-[2rem] border border-border/70 bg-card p-5">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <FileJson className="size-4" />
-                  Structured JSON
-                </div>
-                <pre className="mt-4 overflow-x-auto rounded-2xl bg-background p-4 text-xs text-muted-foreground">
-                  {JSON.stringify(state.result, null, 2)}
-                </pre>
-              </div>
-            </div>
+              ))
+            ) : (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No deliverables were extracted.
+              </p>
+            )}
           </div>
         </div>
       ) : null}

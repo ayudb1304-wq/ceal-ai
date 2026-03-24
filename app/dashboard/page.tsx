@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation"
 import { FolderOpen } from "lucide-react"
 
-import { auth, signOut } from "@/auth"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
+import { auth } from "@/auth"
 import { getOnboardingStateByEmail } from "@/lib/supabase/onboarding"
 import { getProjectsForAgency } from "@/lib/supabase/projects"
 import { ProjectCard } from "@/src/components/dashboard/ProjectCard"
@@ -22,7 +20,7 @@ export default async function DashboardPage() {
     : []
 
   return (
-    <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
+    <div className="px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -32,19 +30,7 @@ export default async function DashboardPage() {
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">Projects</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <NewProjectModal />
-            <form
-              action={async () => {
-                "use server"
-                await signOut({ redirectTo: "/" })
-              }}
-            >
-              <Button type="submit" variant="outline" size="lg" className="h-9 rounded-full px-5">
-                Sign out
-              </Button>
-            </form>
-          </div>
+          <NewProjectModal />
         </div>
 
         {/* Project grid */}
@@ -67,6 +53,6 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   )
 }

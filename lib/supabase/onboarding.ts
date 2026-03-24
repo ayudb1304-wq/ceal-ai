@@ -89,7 +89,10 @@ export async function getOnboardingStateByEmail(email: string): Promise<Onboardi
   }
 }
 
-export async function saveOnboardingByEmail(email: string, values: OnboardingFormValues) {
+export async function saveOnboardingByEmail(
+  email: string,
+  values: OnboardingFormValues
+): Promise<{ projectId: string }> {
   const supabase = createSupabaseAdminClient()
 
   const { data: agency, error: agencyError } = await supabase
@@ -128,6 +131,8 @@ export async function saveOnboardingByEmail(email: string, values: OnboardingFor
     throw new Error(`Failed to load project: ${existingProjectError.message}`)
   }
 
+  let projectId: string
+
   if (existingProject) {
     const { error: updateProjectError } = await supabase
       .from("projects")
@@ -143,18 +148,28 @@ export async function saveOnboardingByEmail(email: string, values: OnboardingFor
     if (updateProjectError) {
       throw new Error(`Failed to update project: ${updateProjectError.message}`)
     }
-  } else {
-    const { error: insertProjectError } = await supabase.from("projects").insert({
-      agency_id: agency.id,
-      name: values.projectName || null,
-      client_name: values.clientName,
-      client_email: values.clientEmail,
-      sow_document_url: values.sowFileName || null,
-      status: "draft",
-    })
 
-    if (insertProjectError) {
-      throw new Error(`Failed to create project: ${insertProjectError.message}`)
+    projectId = existingProject.id
+  } else {
+    const { data: newProject, error: insertProjectError } = await supabase
+      .from("projects")
+      .insert({
+        agency_id: agency.id,
+        name: values.projectName || null,
+        client_name: values.clientName,
+        client_email: values.clientEmail,
+        sow_document_url: values.sowFileName || null,
+        status: "draft",
+      })
+      .select("id")
+      .single()
+
+    if (insertProjectError || !newProject) {
+      throw new Error(`Failed to create project: ${insertProjectError?.message}`)
     }
+
+    projectId = newProject.id
   }
+
+  return { projectId }
 }

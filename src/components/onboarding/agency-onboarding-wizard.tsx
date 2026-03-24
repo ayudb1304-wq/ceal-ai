@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { completeOnboardingAction } from "@/app/(onboarding)/onboarding/actions"
 import { cn } from "@/lib/utils"
 import { SowExtractionReview } from "@/src/components/onboarding/sow-extraction-review"
+import type { SowExtractionResult } from "@/lib/ai/sow-types"
 
 const steps = [
   {
@@ -120,6 +121,7 @@ export function AgencyOnboardingWizard({
   const router = useRouter()
   const [stepIndex, setStepIndex] = React.useState(0)
   const [formState, setFormState] = React.useState<OnboardingWizardValues>(initialValues)
+  const [extractionResult, setExtractionResult] = React.useState<SowExtractionResult | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 
@@ -145,7 +147,7 @@ export function AgencyOnboardingWizard({
     setIsSubmitting(true)
     setErrorMessage(null)
 
-    const result = await completeOnboardingAction(ownerEmail, formState)
+    const result = await completeOnboardingAction(ownerEmail, formState, extractionResult)
 
     if (!result.success) {
       setErrorMessage(result.error ?? "Unable to finish onboarding.")
@@ -350,6 +352,7 @@ export function AgencyOnboardingWizard({
                 </div>
                 <SowExtractionReview
                   onFileNameChange={(fileName) => updateField("sowFileName", fileName)}
+                  onExtractionComplete={setExtractionResult}
                 />
               </div>
 
