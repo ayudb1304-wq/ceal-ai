@@ -75,6 +75,13 @@ export async function upsertDeliverableAction(
   try {
     await requireAgencyId()
     await upsertDeliverable(projectId, deliverable)
+    const isEdit = Boolean(deliverable.id)
+    await writeAuditLog(
+      projectId,
+      isEdit ? "deliverable_updated" : "deliverable_added",
+      isEdit ? `Deliverable updated: ${deliverable.title}` : `Deliverable added: ${deliverable.title}`,
+      { metadata: { title: deliverable.title, requiredFormat: deliverable.requiredFormat ?? null } }
+    )
     revalidatePath(`/dashboard/projects/${projectId}`)
     revalidatePath("/dashboard")
     return { success: true }
@@ -90,6 +97,9 @@ export async function deleteDeliverableAction(
   try {
     await requireAgencyId()
     await deleteDeliverable(deliverableId)
+    await writeAuditLog(projectId, "deliverable_deleted", "Deliverable deleted", {
+      metadata: { deliverableId },
+    })
     revalidatePath(`/dashboard/projects/${projectId}`)
     revalidatePath("/dashboard")
     return { success: true }
@@ -163,6 +173,10 @@ export async function updateDeliverableTextValueAction(
   try {
     await requireAgencyId()
     await updateDeliverableTextValue(deliverableId, textValue)
+    await writeAuditLog(projectId, "deliverable_value_saved", `Value saved: ${textValue.trim() || "(cleared)"}`, {
+      deliverableId,
+      metadata: { textValue: textValue.trim() },
+    })
     revalidatePath(`/dashboard/projects/${projectId}`)
     revalidatePath("/dashboard")
     return { success: true }
@@ -225,6 +239,9 @@ export async function updateCredentialAction(
   try {
     await requireAgencyId()
     await updateCredential(credentialId, label, value)
+    await writeAuditLog(projectId, "credential_updated", `Credential updated: ${label}`, {
+      metadata: { label },
+    })
     revalidatePath(`/dashboard/projects/${projectId}`)
     return { success: true }
   } catch (e) {
@@ -239,6 +256,9 @@ export async function deleteCredentialAction(
   try {
     await requireAgencyId()
     await deleteCredential(credentialId)
+    await writeAuditLog(projectId, "credential_deleted", "Credential deleted", {
+      metadata: { credentialId },
+    })
     revalidatePath(`/dashboard/projects/${projectId}`)
     return { success: true }
   } catch (e) {
@@ -297,6 +317,14 @@ export async function reExtractSowAction(
         createCredential(projectId, c.label, "TBD — add value in project")
       )
     )
+
+    await writeAuditLog(projectId, "sow_uploaded", `SOW uploaded: ${file.name}`, {
+      metadata: {
+        fileName: file.name,
+        deliverableCount: result.deliverables.length,
+        credentialCount: result.credentials.length,
+      },
+    })
 
     revalidatePath(`/dashboard/projects/${projectId}`)
     revalidatePath("/dashboard")
