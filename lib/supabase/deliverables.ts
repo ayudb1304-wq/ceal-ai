@@ -67,6 +67,32 @@ export async function upsertDeliverable(
   return result
 }
 
+export async function updateDeliverableFile(
+  id: string,
+  fileUrl: string,
+  isVerified: boolean
+): Promise<void> {
+  const supabase = createSupabaseAdminClient()
+
+  const { error } = await supabase
+    .from("deliverables")
+    .update({ file_url: fileUrl, is_verified: isVerified })
+    .eq("id", id)
+
+  if (error) throw new Error(`Failed to update deliverable file: ${error.message}`)
+}
+
+export async function setDeliverableVerified(id: string, isVerified: boolean): Promise<void> {
+  const supabase = createSupabaseAdminClient()
+
+  const { error } = await supabase
+    .from("deliverables")
+    .update({ is_verified: isVerified })
+    .eq("id", id)
+
+  if (error) throw new Error(`Failed to update verification status: ${error.message}`)
+}
+
 export async function deleteDeliverable(id: string): Promise<void> {
   const supabase = createSupabaseAdminClient()
 

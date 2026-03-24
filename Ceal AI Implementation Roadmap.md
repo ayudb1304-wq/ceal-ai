@@ -172,9 +172,9 @@ All tables have RLS enabled. Migrations live in `supabase/migrations/`.
 - [x] HITL Banner — persistent until agency approves checklist (transitions project `draft` → `active`).
 - [x] Publish button — generates 7-day magic link.
 - [ ] **SOW upload section** — upload/replace SOW, trigger AI extraction, append to checklist (see Phase 2).
-- [ ] **File upload per deliverable** — dropzone on each deliverable row; uploads file to Supabase Storage private bucket (`deliverable-files`).
-- [ ] **Basic Software Probe** — on upload, server checks file extension against `required_format`. Match → `is_verified = true` + green "Verified" badge. Mismatch → upload accepted but "Pending" badge + warning: _"Expected `.ai`, got `.png`."_
-- [ ] **Manual verification toggle** — agency can manually mark any deliverable as verified (for edge cases).
+- [x] **File upload per deliverable** — upload button on each deliverable row; uploads file to Supabase Storage private bucket (`deliverable-files`).
+- [x] **Basic Software Probe** — on upload, server checks file extension against `required_format`. Match → `is_verified = true` + green "Verified" badge. Mismatch → upload accepted but "Pending" badge + warning: _"Expected `.ai`, got `.png`."_
+- [x] **Manual verification toggle** — agency can manually mark any deliverable as verified/unverified (for edge cases).
 - [ ] **Pre-publish guard** — if any deliverable has no file uploaded, a modal warns: _"X deliverables have no files. Publish anyway?"_
 - [ ] **Audit Log Timeline** — vertical timeline below the checklist showing all project events (see event list below). Read-only.
 - [ ] **Republish / revoke** — clicking Publish again revokes the old token, generates a new 7-day token, and re-sends the Resend email.

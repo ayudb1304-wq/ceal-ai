@@ -2,9 +2,15 @@
 
 import { auth } from "@/auth"
 import { getAgencyIdByEmail, createProject, approveChecklist } from "@/lib/supabase/projects"
-import { upsertDeliverable, deleteDeliverable } from "@/lib/supabase/deliverables"
+import {
+  upsertDeliverable,
+  deleteDeliverable,
+  updateDeliverableFile,
+  setDeliverableVerified,
+} from "@/lib/supabase/deliverables"
 import { createCredential, deleteCredential } from "@/lib/supabase/credentials"
 import { publishProject } from "@/lib/supabase/magic-links"
+import { uploadDeliverableFile } from "@/lib/supabase/storage"
 import { revalidatePath } from "next/cache"
 
 async function requireAgencyId(): Promise<string> {
@@ -77,6 +83,65 @@ export async function deleteDeliverableAction(
       success: false,
       error: e instanceof Error ? e.message : "Failed to delete deliverable",
     }
+  }
+}
+
+// ── File uploads ──────────────────────────────────────────────────────────────
+
+export async function uploadDeliverableFileAction(
+  projectId: string,
+  deliverableId: string,
+  requiredFormat: string | null,
+  formData: FormData
+): Promise<{ success: boolean; isVerified?: boolean; mismatch?: string; error?: string }> {
+  try {
+    await requireAgencyId()
+
+    const file = formData.get("file")
+    if (!(file instanceof File) || file.size === 0) {
+      return { success: false, error: "No file selected." }
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      return { success: false, error: "File exceeds the 50 MB limit." }
+    }
+
+    const storagePath = await uploadDeliverableFile(projectId, deliverableId, file)
+
+    // Basic Software Probe: check extension against required_format
+    const uploadedExt = file.name.includes(".")
+      ? `.${file.name.split(".").pop()?.toLowerCase()}`
+      : ""
+    const expectedExt = requiredFormat?.toLowerCase().trim() ?? ""
+    const isVerified = Boolean(expectedExt && uploadedExt === expectedExt)
+    const mismatch =
+      expectedExt && !isVerified
+        ? `Expected ${expectedExt}, got ${uploadedExt || "unknown"}`
+        : undefined
+
+    await updateDeliverableFile(deliverableId, storagePath, isVerified)
+
+    revalidatePath(`/dashboard/projects/${projectId}`)
+    revalidatePath("/dashboard")
+    return { success: true, isVerified, mismatch }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Upload failed." }
+  }
+}
+
+export async function toggleVerifiedAction(
+  projectId: string,
+  deliverableId: string,
+  isVerified: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAgencyId()
+    await setDeliverableVerified(deliverableId, isVerified)
+    revalidatePath(`/dashboard/projects/${projectId}`)
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Failed to update status." }
   }
 }
 
