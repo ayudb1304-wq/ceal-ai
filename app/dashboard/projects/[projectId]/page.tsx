@@ -13,6 +13,7 @@ import { HitlBanner } from "@/src/components/project/HitlBanner"
 import { DeliverableChecklist } from "@/src/components/project/DeliverableChecklist"
 import { CredentialVault } from "@/src/components/project/CredentialVault"
 import { PublishButton } from "@/src/components/project/PublishButton"
+import { SowReupload } from "@/src/components/project/SowReupload"
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
@@ -60,7 +61,18 @@ export default async function ProjectDetailPage({ params }: { params: Params }) 
                 {project.name ?? "Unnamed project"}
               </h1>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {project.client_name} · {project.client_email}
+                {project.client_id ? (
+                  <Link
+                    href={`/dashboard/clients/${project.client_id}`}
+                    className="transition-colors hover:text-foreground hover:underline"
+                  >
+                    {project.client_name}
+                  </Link>
+                ) : (
+                  project.client_name
+                )}
+                {" · "}
+                {project.client_email}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -79,6 +91,13 @@ export default async function ProjectDetailPage({ params }: { params: Params }) 
 
         {/* HITL banner for draft projects */}
         {project.status === "draft" && <HitlBanner projectId={projectId} />}
+
+        {/* SOW upload / re-extraction */}
+        <SowReupload
+          projectId={projectId}
+          currentSowUrl={project.sow_document_url}
+          projectStatus={project.status}
+        />
 
         {/* Deliverables */}
         <DeliverableChecklist projectId={projectId} deliverables={deliverables} projectStatus={project.status} />

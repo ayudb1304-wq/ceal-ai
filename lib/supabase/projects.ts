@@ -19,6 +19,7 @@ export type ProjectDetail = {
   name: string | null
   client_name: string
   client_email: string
+  client_id: string | null
   status: ProjectStatus
   sow_document_url: string | null
   agency_id: string
@@ -66,7 +67,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
 
   const { data, error } = await supabase
     .from("projects")
-    .select("id, name, client_name, client_email, status, sow_document_url, agency_id")
+    .select("id, name, client_name, client_email, client_id, status, sow_document_url, agency_id")
     .eq("id", projectId)
     .maybeSingle()
 
