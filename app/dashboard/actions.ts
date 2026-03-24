@@ -14,7 +14,7 @@ import {
   updateDeliverableFile,
   setDeliverableVerified,
 } from "@/lib/supabase/deliverables"
-import { createCredential, deleteCredential } from "@/lib/supabase/credentials"
+import { createCredential, updateCredential, deleteCredential } from "@/lib/supabase/credentials"
 import { publishProject } from "@/lib/supabase/magic-links"
 import { uploadDeliverableFile, uploadSowDocument } from "@/lib/supabase/storage"
 import { sendPortalEmail } from "@/lib/email/resend"
@@ -196,6 +196,22 @@ export async function createCredentialAction(
       success: false,
       error: e instanceof Error ? e.message : "Failed to save credential",
     }
+  }
+}
+
+export async function updateCredentialAction(
+  projectId: string,
+  credentialId: string,
+  label: string,
+  value: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAgencyId()
+    await updateCredential(credentialId, label, value)
+    revalidatePath(`/dashboard/projects/${projectId}`)
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Failed to update credential" }
   }
 }
 

@@ -61,6 +61,23 @@ export async function createCredential(
   }
 }
 
+export async function updateCredential(
+  id: string,
+  label: string,
+  value: string
+): Promise<void> {
+  const supabase = createSupabaseAdminClient()
+
+  const { encryptedValue, iv } = encrypt(value)
+
+  const { error } = await supabase
+    .from("credentials")
+    .update({ label, encrypted_value: encryptedValue, iv })
+    .eq("id", id)
+
+  if (error) throw new Error(`Failed to update credential: ${error.message}`)
+}
+
 export async function deleteCredential(id: string): Promise<void> {
   const supabase = createSupabaseAdminClient()
 

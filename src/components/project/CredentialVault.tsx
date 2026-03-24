@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { PlusCircle, Eye, EyeOff, Copy, Check, Trash2, KeyRound } from "lucide-react"
+import { PlusCircle, Eye, EyeOff, Copy, Check, Trash2, KeyRound, Pencil } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   createCredentialAction,
+  updateCredentialAction,
   deleteCredentialAction,
 } from "@/app/dashboard/actions"
 import type { CredentialRow } from "@/lib/supabase/credentials"
@@ -26,6 +27,7 @@ type Props = {
 
 export function CredentialVault({ projectId, credentials }: Props) {
   const [addOpen, setAddOpen] = React.useState(false)
+  const [editTarget, setEditTarget] = React.useState<CredentialRow | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<CredentialRow | null>(null)
   const [deleting, setDeleting] = React.useState(false)
   const [deleteError, setDeleteError] = React.useState<string | null>(null)
@@ -72,10 +74,21 @@ export function CredentialVault({ projectId, credentials }: Props) {
             <CredentialCard
               key={cred.id}
               credential={cred}
+              onEdit={() => setEditTarget(cred)}
               onDelete={() => setDeleteTarget(cred)}
             />
           ))}
         </div>
+      )}
+
+      {/* Edit credential modal */}
+      {editTarget && (
+        <EditCredentialModal
+          projectId={projectId}
+          credential={editTarget}
+          open={editTarget !== null}
+          onOpenChange={(o) => { if (!o) setEditTarget(null) }}
+        />
       )}
 
       {/* Add credential modal */}
@@ -121,9 +134,11 @@ export function CredentialVault({ projectId, credentials }: Props) {
 
 function CredentialCard({
   credential,
+  onEdit,
   onDelete,
 }: {
   credential: CredentialRow
+  onEdit: () => void
   onDelete: () => void
 }) {
   const [revealed, setRevealed] = React.useState(false)
@@ -148,15 +163,25 @@ function CredentialCard({
           </span>
           <span className="text-sm font-medium">{credential.label}</span>
         </div>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          onClick={onDelete}
-          aria-label="Delete credential"
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={onEdit}
+            aria-label="Edit credential"
+          >
+            <Pencil />
+          </Button>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={onDelete}
+            aria-label="Delete credential"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 />
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -186,6 +211,88 @@ function CredentialCard({
         </Button>
       </div>
     </div>
+  )
+}
+
+function EditCredentialModal({
+  projectId,
+  credential,
+  open,
+  onOpenChange,
+}: {
+  projectId: string
+  credential: CredentialRow
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [label, setLabel] = React.useState(credential.label)
+  const [value, setValue] = React.useState(
+    credential.value === "TBD — add value in project" ? "" : credential.value
+  )
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!label.trim() || !value.trim()) {
+      setError("Both fields are required.")
+      return
+    }
+    setLoading(true)
+    setError(null)
+    const result = await updateCredentialAction(projectId, credential.id, label.trim(), value.trim())
+    setLoading(false)
+    if (!result.success) {
+      setError(result.error ?? "Something went wrong.")
+      return
+    }
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md rounded-[1.5rem]">
+        <DialogHeader>
+          <DialogTitle>Edit credential</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="mt-2 space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-cred-label">Label</Label>
+            <Input
+              id="edit-cred-label"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-cred-value">Value</Label>
+            <Input
+              id="edit-cred-value"
+              placeholder="Enter the actual value…"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              disabled={loading}
+              autoFocus
+            />
+          </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
