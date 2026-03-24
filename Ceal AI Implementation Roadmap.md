@@ -125,11 +125,11 @@ All tables have RLS enabled. Migrations live in `supabase/migrations/`.
 - [x] Extracted credentials bulk-inserted into `credentials` table with placeholder value `"TBD — add value in project"`.
 
 #### SOW Re-upload on Project Detail (new)
-- [ ] Agency can upload or replace a SOW directly from the Project Detail page.
-- [ ] Same Gemini extraction flow is triggered (`extractSowDeliverablesAction`).
-- [ ] Extracted items are **appended** to (not replace) existing deliverables and credentials.
-- [ ] SOW file is stored in Supabase Storage; path saved to `projects.sow_document_url`.
-- [ ] If a SOW already exists, show filename with a "Replace SOW" option.
+- [x] Agency can upload or replace a SOW directly from the Project Detail page.
+- [x] Same Gemini extraction flow is triggered (`reExtractSowAction`).
+- [x] Extracted items are **appended** to (not replace) existing deliverables and credentials.
+- [x] SOW file stored in Supabase Storage (`sow-documents` bucket); path saved to `projects.sow_document_url`.
+- [x] If a SOW already exists, filename shown with a "Replace SOW" option.
 
 ---
 

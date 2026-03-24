@@ -1,7 +1,12 @@
 "use server"
 
 import { auth } from "@/auth"
-import { getAgencyIdByEmail, createProject, approveChecklist } from "@/lib/supabase/projects"
+import {
+  getAgencyIdByEmail,
+  createProject,
+  approveChecklist,
+  updateProjectSowUrl,
+} from "@/lib/supabase/projects"
 import {
   upsertDeliverable,
   deleteDeliverable,
@@ -10,7 +15,7 @@ import {
 } from "@/lib/supabase/deliverables"
 import { createCredential, deleteCredential } from "@/lib/supabase/credentials"
 import { publishProject } from "@/lib/supabase/magic-links"
-import { uploadDeliverableFile } from "@/lib/supabase/storage"
+import { uploadDeliverableFile, uploadSowDocument } from "@/lib/supabase/storage"
 import { revalidatePath } from "next/cache"
 
 async function requireAgencyId(): Promise<string> {
@@ -179,6 +184,69 @@ export async function deleteCredentialAction(
       success: false,
       error: e instanceof Error ? e.message : "Failed to delete credential",
     }
+  }
+}
+
+// ── SOW re-extraction ─────────────────────────────────────────────────────────
+
+export type ReExtractSowState =
+  | { status: "idle" }
+  | { status: "success"; fileName: string; deliverableCount: number; credentialCount: number }
+  | { status: "error"; error: string }
+
+export async function reExtractSowAction(
+  _prevState: ReExtractSowState,
+  formData: FormData
+): Promise<ReExtractSowState> {
+  try {
+    const session = await (await import("@/auth")).auth()
+    if (!session?.user?.email) return { status: "error", error: "Not authenticated." }
+
+    const projectId = formData.get("projectId") as string
+    const file = formData.get("sowFile")
+
+    if (!projectId) return { status: "error", error: "Missing project ID." }
+    if (!(file instanceof File) || file.size === 0) {
+      return { status: "error", error: "Please select a SOW file." }
+    }
+
+    // Upload SOW to storage and update project record
+    const sowPath = await uploadSowDocument(projectId, file)
+    await updateProjectSowUrl(projectId, sowPath)
+
+    // Run Gemini extraction
+    const { extractDeliverablesFromSow } = await import("@/lib/ai/sow-extraction")
+    const result = await extractDeliverablesFromSow(file)
+
+    // Append deliverables (don't replace existing ones)
+    await Promise.all(
+      result.deliverables.map((d) =>
+        upsertDeliverable(projectId, {
+          title: d.title,
+          description: d.description,
+          requiredFormat: d.requiredFormat,
+        })
+      )
+    )
+
+    // Append credentials with placeholder value
+    await Promise.all(
+      result.credentials.map((c) =>
+        createCredential(projectId, c.label, "TBD — add value in project")
+      )
+    )
+
+    revalidatePath(`/dashboard/projects/${projectId}`)
+    revalidatePath("/dashboard")
+
+    return {
+      status: "success",
+      fileName: file.name,
+      deliverableCount: result.deliverables.length,
+      credentialCount: result.credentials.length,
+    }
+  } catch (e) {
+    return { status: "error", error: e instanceof Error ? e.message : "Extraction failed." }
   }
 }
 

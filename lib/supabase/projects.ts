@@ -109,6 +109,20 @@ export async function approveChecklist(projectId: string): Promise<void> {
   if (error) throw new Error(`Failed to approve checklist: ${error.message}`)
 }
 
+export async function updateProjectSowUrl(
+  projectId: string,
+  sowUrl: string
+): Promise<void> {
+  const supabase = createSupabaseAdminClient()
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ sow_document_url: sowUrl })
+    .eq("id", projectId)
+
+  if (error) throw new Error(`Failed to update SOW URL: ${error.message}`)
+}
+
 export async function getAgencyIdByEmail(email: string): Promise<string | null> {
   const supabase = createSupabaseAdminClient()
 

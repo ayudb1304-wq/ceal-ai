@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server"
 
 const BUCKET = "deliverable-files"
+const SOW_BUCKET = "sow-documents"
 
 /**
  * Upload a file for a deliverable.
@@ -27,6 +28,30 @@ export async function uploadDeliverableFile(
   })
 
   if (error) throw new Error(`Upload failed: ${error.message}`)
+
+  return path
+}
+
+/**
+ * Upload a SOW document for a project.
+ * Path: sow-documents/{projectId}/{timestamp}_{filename}
+ * Returns the storage path.
+ */
+export async function uploadSowDocument(projectId: string, file: File): Promise<string> {
+  const supabase = createSupabaseAdminClient()
+
+  const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
+  const path = `${projectId}/${safeName}`
+
+  const arrayBuffer = await file.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
+
+  const { error } = await supabase.storage.from(SOW_BUCKET).upload(path, buffer, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  })
+
+  if (error) throw new Error(`SOW upload failed: ${error.message}`)
 
   return path
 }
